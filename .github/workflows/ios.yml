@@ -48,6 +48,10 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity dict" $P || true
           /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool true" $P || true
           /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true" $P || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" $P || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string audio" $P || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:1 string processing" $P || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:2 string fetch" $P || true
           if [ -n "${{ inputs.server_url }}" ]; then
             node -e "const fs=require('fs'),p='ios/App/App/capacitor.config.json',c=JSON.parse(fs.readFileSync(p,'utf8'));c.server={url:process.env.S_URL,cleartext:true};fs.writeFileSync(p,JSON.stringify(c,null,2));" S_URL="${{ inputs.server_url }}"
           fi

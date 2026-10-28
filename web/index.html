@@ -70,6 +70,11 @@
 
       <!-- 右侧连接状态与功能入口 -->
       <div class="topbar-actions">
+        <button type="button" id="btnTogglePiP" class="action-btn primary-btn" title="开启 iOS 原生画中画悬浮窗 + 后台自动监听截屏/剪贴板，切回任意 App 实时翻译">
+          <span class="status-dot online" id="pipStatusDot"></span>
+          <span id="pipBtnLabel">开启悬浮实时翻译 (PiP)</span>
+        </button>
+
         <button type="button" id="btnLiveSync" class="action-btn subtle-btn active" title="开启后手机快捷指令触发翻译会自动同步到当前电脑画布">
           <span class="status-dot online"></span>
           <span>双端同步中</span>
@@ -80,7 +85,7 @@
             <rect x="6" y="2" width="12" height="20" rx="2.5"></rect>
             <path d="M10 18h4"></path>
           </svg>
-          <span>iOS 轻点背面配置</span>
+          <span>无感使用指南</span>
         </button>
 
         <button type="button" id="btnOpenApiModal" class="action-btn">
@@ -154,6 +159,18 @@
             <button type="button" id="btnLoadDemo" class="action-btn subtle-btn" title="加载内置高保真外文画面并执行实时 OCR 与翻译">
               <span>演示样张</span>
             </button>
+          </div>
+        </div>
+
+        <!-- 全局画中画 (PiP) 实时悬浮状态横幅 -->
+        <div id="pipLiveBanner" class="pip-live-banner hidden">
+          <div class="pip-banner-left">
+            <span class="status-dot online"></span>
+            <span id="pipBannerText">全局画中画 (PiP) 实时模式运行中：切回任意 App 截屏或复制文字，悬浮窗将在 0.5s 内自动刷新 1:1 原位译文</span>
+          </div>
+          <div class="pip-banner-actions">
+            <button type="button" id="btnTranslateLatestShot" class="mini-btn">立即识别最新截屏</button>
+            <button type="button" id="btnStopPiPBanner" class="mini-btn">关闭悬浮</button>
           </div>
         </div>
 
@@ -271,14 +288,22 @@
 
     <!-- 移动端底部专属 4 胶囊悬浮控制舱（还原 ios_in_place_mockup.png 底部设计） -->
     <nav class="mobile-bottom-dock" aria-label="移动端快捷控制栏">
-      <button type="button" id="mobBtnUpload" class="dock-pill primary-dock-pill">
+      <button type="button" id="mobBtnPiP" class="dock-pill primary-dock-pill">
+        <span class="status-dot online" id="mobPipDot"></span>
+        <div class="dock-pill-text">
+          <span class="dock-sub" id="mobPipSub">全局悬浮窗</span>
+          <span class="dock-main" id="mobPipMain">开启实时翻译</span>
+        </div>
+      </button>
+
+      <button type="button" id="mobBtnUpload" class="dock-pill">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="2"></rect>
           <circle cx="8.5" cy="8.5" r="1.5"></circle>
           <polyline points="21 15 16 10 5 21"></polyline>
         </svg>
         <div class="dock-pill-text">
-          <span class="dock-sub">选择截图</span>
+          <span class="dock-sub">选择画面</span>
           <span class="dock-main">相册/拍照</span>
         </div>
       </button>
@@ -287,7 +312,7 @@
         <span class="status-dot online"></span>
         <div class="dock-pill-text">
           <span class="dock-sub">翻译引擎</span>
-          <span class="dock-main" id="mobEngineLabel">Google</span>
+          <span class="dock-main" id="mobEngineLabel">百度翻译</span>
         </div>
       </button>
 
@@ -299,14 +324,6 @@
         <div class="dock-pill-text">
           <span class="dock-sub">视图模式</span>
           <span class="dock-main" id="mobModeLabel">按住对照</span>
-        </div>
-      </button>
-
-      <button type="button" id="mobBtnShortcut" class="dock-pill">
-        <span class="status-dot online"></span>
-        <div class="dock-pill-text">
-          <span class="dock-sub">轻点背面</span>
-          <span class="dock-main">快捷指令</span>
         </div>
       </button>
     </nav>

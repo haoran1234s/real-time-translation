@@ -745,6 +745,39 @@ body {
   color: var(--text-secondary);
 }
 
+/* 全局画中画 (PiP) 实时悬浮状态横幅 */
+.pip-live-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background-color: rgba(16, 185, 129, 0.12);
+  border-bottom: 1px solid var(--accent-border);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.pip-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pip-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pip-running {
+  background-color: #059669 !important;
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.45);
+}
+
 /* 加载状态遮罩 */
 .loading-overlay {
   position: absolute;

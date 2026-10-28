@@ -24,6 +24,7 @@ const state = {
   displayMode: "inplace",
   isPhoneFrame: true,
   isLiveSync: true,
+  isPiPActive: false,
   backendAvailable: false,
   currentSessionId: "",
   originalImage: "",
@@ -352,6 +353,15 @@ const dom = {
   mobileWebUrlCode: document.getElementById("mobileWebUrlCode"),
   btnCopyShortcutUrl: document.getElementById("btnCopyShortcutUrl"),
 
+  mobBtnPiP: document.getElementById("mobBtnPiP"),
+  mobPipSub: document.getElementById("mobPipSub"),
+  mobPipMain: document.getElementById("mobPipMain"),
+  btnTogglePiP: document.getElementById("btnTogglePiP"),
+  pipBtnLabel: document.getElementById("pipBtnLabel"),
+  pipLiveBanner: document.getElementById("pipLiveBanner"),
+  pipBannerText: document.getElementById("pipBannerText"),
+  btnTranslateLatestShot: document.getElementById("btnTranslateLatestShot"),
+  btnStopPiPBanner: document.getElementById("btnStopPiPBanner"),
   mobBtnUpload: document.getElementById("mobBtnUpload"),
   mobBtnEngine: document.getElementById("mobBtnEngine"),
   mobEngineLabel: document.getElementById("mobEngineLabel"),
@@ -553,6 +563,181 @@ const applyTranslationSession = (session) => {
 
   renderOverlayLayer();
   renderBlocksList();
+
+  if (state.isPiPActive && state.renderedImage) {
+    pushFrameToPiP(state.renderedImage);
+  }
+};
+
+// Web 端画中画 Video 后备支持
+let webPipCanvas = null;
+let webPipVideo = null;
+let webLiveTimer = null;
+
+const updatePiPUI = (active) => {
+  state.isPiPActive = active;
+  dom.btnTogglePiP?.classList.toggle("pip-running", active);
+  dom.mobBtnPiP?.classList.toggle("pip-running", active);
+  dom.pipLiveBanner?.classList.toggle("hidden", !active);
+
+  if (dom.pipBtnLabel) {
+    dom.pipBtnLabel.textContent = active ? "悬浮实时翻译运行中 (点击关闭)" : "开启悬浮实时翻译 (PiP)";
+  }
+  if (dom.mobPipSub) {
+    dom.mobPipSub.textContent = active ? "LIVE 运行中" : "全局悬浮窗";
+  }
+  if (dom.mobPipMain) {
+    dom.mobPipMain.textContent = active ? "点击关闭悬浮" : "开启实时翻译";
+  }
+};
+
+const pushFrameToPiP = (renderedBase64) => {
+  if (!renderedBase64) return;
+  const nativeHandler = window.webkit?.messageHandlers?.nativeOcr;
+  if (nativeHandler) {
+    nativeHandler.postMessage({
+      action: "updatePiPFrame",
+      imageBase64: renderedBase64
+    });
+  }
+  if (webPipCanvas) {
+    const img = new Image();
+    img.onload = () => {
+      const ctx = webPipCanvas.getContext("2d");
+      ctx.fillStyle = "#09090b";
+      ctx.fillRect(0, 0, webPipCanvas.width, webPipCanvas.height);
+      const scale = Math.min(webPipCanvas.width / img.naturalWidth, webPipCanvas.height / img.naturalHeight);
+      const dw = img.naturalWidth * scale;
+      const dh = img.naturalHeight * scale;
+      ctx.drawImage(img, (webPipCanvas.width - dw) / 2, (webPipCanvas.height - dh) / 2, dw, dh);
+    };
+    img.src = renderedBase64;
+  }
+};
+
+window.__onNativePiPState = (active, message) => {
+  updatePiPUI(Boolean(active));
+  if (message) showToast(message);
+};
+
+window.__onNativeLiveTranslated = (renderedBase64, rawBlocks) => {
+  if (!renderedBase64) return;
+  const imgW = 750;
+  const imgH = 1334;
+  const blocks = (Array.isArray(rawBlocks) ? rawBlocks : []).map((b, i) => ({
+    id: `T${i + 1}`,
+    index: i + 1,
+    original: b.src ?? "",
+    translated: b.dst ?? "",
+    x: Math.round(b.x ?? 0),
+    y: Math.round(b.y ?? 0),
+    w: Math.round(b.w ?? 100),
+    h: Math.round(b.h ?? 36),
+    nx: Number((((b.x ?? 0) / imgW) * 100).toFixed(2)),
+    ny: Number((((b.y ?? 0) / imgH) * 100).toFixed(2)),
+    nw: Number((((b.w ?? 100) / imgW) * 100).toFixed(2)),
+    nh: Number((((b.h ?? 36) / imgH) * 100).toFixed(2)),
+    bg_color: "#0d0f14",
+    fg_color: "#f8fafc",
+    line_count: 1
+  }));
+  applyTranslationSession({
+    session_id: `pip_${Date.now()}`,
+    width: imgW,
+    height: imgH,
+    engine: "baidu",
+    total_ms: 480,
+    blocks,
+    original_image: renderedBase64,
+    rendered_image: renderedBase64
+  });
+  showToast(`已实时识别并刷新悬浮窗 (${blocks.length} 处译文)`);
+};
+
+const toggleLivePiPMode = async () => {
+  const nativeHandler = window.webkit?.messageHandlers?.nativeOcr;
+  if (nativeHandler) {
+    const nextAction = state.isPiPActive ? "stopPiP" : "startPiP";
+    nativeHandler.postMessage({
+      action: nextAction,
+      baiduAppId: state.config?.baidu?.app_id ?? "",
+      baiduSecretKey: state.config?.baidu?.app_key ?? "",
+      targetLang: state.targetLang ?? "zh"
+    });
+    if (nextAction === "startPiP" && state.renderedImage) {
+      setTimeout(() => pushFrameToPiP(state.renderedImage), 150);
+    }
+    return;
+  }
+
+  // Web / 电脑浏览器端画中画 + 自动轮询支持
+  if (state.isPiPActive) {
+    updatePiPUI(false);
+    if (webLiveTimer) {
+      clearInterval(webLiveTimer);
+      webLiveTimer = null;
+    }
+    if (document.pictureInPictureElement) {
+      await document.exitPictureInPicture().catch(() => {});
+    }
+    showToast("已关闭悬浮实时翻译模式");
+    return;
+  }
+
+  try {
+    if (!webPipCanvas) {
+      webPipCanvas = document.createElement("canvas");
+      webPipCanvas.width = 720;
+      webPipCanvas.height = 1280;
+    }
+    if (state.renderedImage) {
+      pushFrameToPiP(state.renderedImage);
+    }
+    if (!webPipVideo) {
+      webPipVideo = document.createElement("video");
+      webPipVideo.muted = true;
+      webPipVideo.playsInline = true;
+      webPipVideo.style.position = "fixed";
+      webPipVideo.style.width = "1px";
+      webPipVideo.style.height = "1px";
+      webPipVideo.style.opacity = "0.01";
+      webPipVideo.style.pointerEvents = "none";
+      document.body.appendChild(webPipVideo);
+      webPipVideo.srcObject = webPipCanvas.captureStream(10);
+    }
+    await webPipVideo.play().catch(() => {});
+    if (webPipVideo.requestPictureInPicture) {
+      await webPipVideo.requestPictureInPicture();
+    } else if (webPipVideo.webkitSetPresentationMode) {
+      webPipVideo.webkitSetPresentationMode("picture-in-picture");
+    }
+    updatePiPUI(true);
+    showToast("已开启全局画中画实时悬浮窗！切回任意软件即可悬浮查看译文");
+
+    if (state.backendAvailable) {
+      webLiveTimer = setInterval(() => {
+        if (state.isPiPActive) triggerPcCapture();
+      }, 4500);
+    }
+  } catch (err) {
+    updatePiPUI(true);
+    showToast("已开启实时自动监听模式（若在 iPhone 请使用打包的 IPA 启动原生画中画）");
+  }
+};
+
+const triggerLatestScreenshotTranslate = () => {
+  const nativeHandler = window.webkit?.messageHandlers?.nativeOcr;
+  if (nativeHandler) {
+    nativeHandler.postMessage({
+      action: "translateLatestScreenshot",
+      baiduAppId: state.config?.baidu?.app_id ?? "",
+      baiduSecretKey: state.config?.baidu?.app_key ?? "",
+      targetLang: state.targetLang ?? "zh"
+    });
+    showToast("正在后台读取相册最新截屏并执行 1:1 原位翻译...");
+    return;
+  }
+  dom.fileInput?.click();
 };
 
 const highlightBlock = (blockId, scrollCard = false) => {
@@ -1008,6 +1193,10 @@ const bindEvents = () => {
 
   dom.btnUploadImg?.addEventListener("click", () => dom.fileInput?.click());
   dom.mobBtnUpload?.addEventListener("click", () => dom.fileInput?.click());
+  dom.btnTogglePiP?.addEventListener("click", toggleLivePiPMode);
+  dom.mobBtnPiP?.addEventListener("click", toggleLivePiPMode);
+  dom.btnStopPiPBanner?.addEventListener("click", toggleLivePiPMode);
+  dom.btnTranslateLatestShot?.addEventListener("click", triggerLatestScreenshotTranslate);
   dom.fileInput?.addEventListener("change", (e) => {
     const file = e.target.files?.[0];
     if (file) handleImageFile(file);
