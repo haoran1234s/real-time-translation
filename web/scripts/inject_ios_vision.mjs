@@ -687,7 +687,7 @@ final class VisionOcrHandler: NSObject, WKScriptMessageHandler, AVPictureInPictu
 
         if let attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: true) as? [NSMutableDictionary],
            let first = attachments.first {
-            first[kCMSampleBufferAttachmentKey_DisplayImmediately] = kCFBooleanTrue
+            first[kCMSampleAttachmentKey_DisplayImmediately] = kCFBooleanTrue
         }
         return sampleBuffer
     }
