@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="TransForge" />
+  <title>TransForge — 1:1 屏幕实时原位翻译工作台 (iOS & PC)</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- 顶部全局导航栏 -->
+    <header class="topbar">
+      <div class="brand-group">
+        <div class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+            <path d="M14 15h7M14 19h5"></path>
+          </svg>
+        </div>
+        <div class="brand-titles">
+          <h1 class="brand-name">TransForge</h1>
+          <span class="brand-subtitle">1:1 原位屏幕实时翻译 · iOS &amp; PC 双端协同</span>
+        </div>
+      </div>
+
+      <!-- 中部快捷语言与引擎控制条 -->
+      <div class="topbar-controls">
+        <div class="lang-pill">
+          <select id="sourceLangSelect" class="clean-select" aria-label="源语言">
+            <option value="auto">自动检测</option>
+            <option value="en">英语 (EN)</option>
+            <option value="ja">日语 (JA)</option>
+            <option value="ko">韩语 (KO)</option>
+            <option value="fr">法语 (FR)</option>
+            <option value="de">德语 (DE)</option>
+            <option value="es">西班牙语 (ES)</option>
+            <option value="ru">俄语 (RU)</option>
+          </select>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"></path>
+            <path d="m13 6 6 6-6 6"></path>
+          </svg>
+          <select id="targetLangSelect" class="clean-select" aria-label="目标语言">
+            <option value="zh">中文 (简体)</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+          </select>
+        </div>
+
+        <div class="engine-selector-group" role="radiogroup" aria-label="翻译引擎选择">
+          <button type="button" class="engine-chip active" data-engine="google">
+            <span class="status-dot online"></span>
+            <span>Google 极速</span>
+          </button>
+          <button type="button" class="engine-chip" data-engine="baidu">
+            <span class="status-dot" id="topDotBaidu"></span>
+            <span>百度翻译</span>
+          </button>
+          <button type="button" class="engine-chip" data-engine="tencent">
+            <span class="status-dot" id="topDotTencent"></span>
+            <span>腾讯云 TMT</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 右侧连接状态与功能入口 -->
+      <div class="topbar-actions">
+        <button type="button" id="btnLiveSync" class="action-btn subtle-btn active" title="开启后手机快捷指令触发翻译会自动同步到当前电脑画布">
+          <span class="status-dot online"></span>
+          <span>双端同步中</span>
+        </button>
+
+        <button type="button" id="btnOpenShortcutModal" class="action-btn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="2" width="12" height="20" rx="2.5"></rect>
+            <path d="M10 18h4"></path>
+          </svg>
+          <span>iOS 轻点背面配置</span>
+        </button>
+
+        <button type="button" id="btnOpenApiModal" class="action-btn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>API 密钥</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 主体双栏工作区 -->
+    <main class="workspace">
+      <!-- 左侧/中央：1:1 原位翻译预览主画布 -->
+      <section class="canvas-panel">
+        <div class="canvas-toolbar">
+          <div class="toolbar-left">
+            <span class="panel-heading">1:1 原位画面预览</span>
+            <span id="metaBadge" class="meta-badge">750 × 1334 · 0 ms</span>
+          </div>
+
+          <!-- 画布显示模式切换：1:1原位覆盖 / T1框选标注 / 按住对照 -->
+          <div class="mode-switch-group" role="tablist" aria-label="画布渲染模式">
+            <button type="button" class="mode-btn active" data-mode="inplace">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+                <path d="M7 10h10M7 14h6"></path>
+              </svg>
+              <span>1:1 原位覆盖</span>
+            </button>
+            <button type="button" class="mode-btn" data-mode="bbox">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 8V6a2 2 0 0 1 2-2h2"></path>
+                <path d="M4 16v2a2 2 0 0 0 2 2h2"></path>
+                <path d="M16 4h2a2 2 0 0 1 2 2v2"></path>
+                <path d="M16 20h2a2 2 0 0 0 2-2v-2"></path>
+              </svg>
+              <span>T1~Tn 框选标注</span>
+            </button>
+            <button type="button" id="btnHoldCompare" class="mode-btn hold-btn" title="按住不放立即透视查看原图">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <span>按住对照原图</span>
+            </button>
+          </div>
+
+          <!-- 图像输入源按钮组 -->
+          <div class="toolbar-right">
+            <button type="button" id="btnUploadImg" class="action-btn primary-btn">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>上传/相册选图</span>
+            </button>
+            <input type="file" id="fileInput" accept="image/*" hidden />
+
+            <button type="button" id="btnCapturePc" class="action-btn">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+              <span>截取电脑屏幕</span>
+            </button>
+
+            <button type="button" id="btnLoadDemo" class="action-btn subtle-btn" title="加载内置高保真外文画面并执行实时 OCR 与翻译">
+              <span>演示样张</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 中央自适应画布视口 -->
+        <div class="canvas-stage" id="canvasStage">
+          <!-- 加载指示遮罩 -->
+          <div id="loadingOverlay" class="loading-overlay hidden">
+            <div class="spinner"></div>
+            <p id="loadingText">正在执行端侧 OCR 与整屏并行翻译...</p>
+          </div>
+
+          <!-- iPhone 外框/自适应图形容器 -->
+          <div id="deviceViewport" class="device-viewport phone-frame">
+            <div class="image-stage-wrapper" id="imageStageWrapper">
+              <img id="screenImage" class="screen-image" alt="待翻译屏幕画面" src="" />
+              <!-- 1:1 坐标精确对齐的动态图层（支持原位色块覆盖与 T1~Tn 翡翠绿框选两种形态） -->
+              <div id="overlayLayer" class="overlay-layer"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 画布底部控制条 -->
+        <div class="canvas-footer">
+          <div class="footer-left">
+            <button type="button" id="btnToggleFrame" class="mini-btn">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="6" y="2" width="12" height="20" rx="2"></rect>
+              </svg>
+              <span id="frameModeLabel">手机外框视图</span>
+            </button>
+            <span class="hint-text">支持直接 Ctrl+V 粘贴截图 · 点击画面气泡可切换原文/译文</span>
+          </div>
+          <div class="footer-right">
+            <button type="button" id="btnExportImage" class="action-btn">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>导出 1:1 汉化图</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右侧：双语对照结果流 + API 引擎状态卡片 -->
+      <aside class="inspector-panel">
+        <div class="inspector-section results-section">
+          <div class="section-header">
+            <div class="section-title-group">
+              <h2 class="section-title">识别文本与双语对照</h2>
+              <span id="itemCountBadge" class="emerald-badge">0 项</span>
+            </div>
+            <button type="button" id="btnCopyAll" class="mini-btn" title="一键复制整屏全部译文">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>复制全部</span>
+            </button>
+          </div>
+
+          <div id="textBlocksList" class="blocks-list">
+            <!-- 动态渲染 T1 ~ Tn 双语对照卡片 -->
+          </div>
+        </div>
+
+        <!-- 底部 API 配置与引擎状态一览（还原效果图右下角） -->
+        <div class="inspector-section api-status-section">
+          <div class="section-header">
+            <h2 class="section-title">翻译引擎配置 (API Configuration)</h2>
+            <button type="button" id="btnManageApi" class="link-btn">管理密钥</button>
+          </div>
+
+          <div class="provider-cards">
+            <div class="provider-card" data-provider="google">
+              <div class="provider-icon google-icon">G</div>
+              <div class="provider-info">
+                <div class="provider-name">Google Translate</div>
+                <div class="provider-desc">免密钥极速通道 · 支持 100+ 语言自动检测</div>
+              </div>
+              <div class="provider-status">
+                <span class="status-dot online"></span>
+                <span class="status-label">Ready</span>
+              </div>
+            </div>
+
+            <div class="provider-card" data-provider="baidu">
+              <div class="provider-icon baidu-icon">百</div>
+              <div class="provider-info">
+                <div class="provider-name">Baidu Translate (百度翻译)</div>
+                <div class="provider-desc">通用翻译 API · 整屏单次合并请求</div>
+              </div>
+              <div class="provider-status">
+                <span class="status-dot" id="cardDotBaidu"></span>
+                <span class="status-label" id="cardLabelBaidu">Not Configured</span>
+              </div>
+            </div>
+
+            <div class="provider-card" data-provider="tencent">
+              <div class="provider-icon tencent-icon">腾</div>
+              <div class="provider-info">
+                <div class="provider-name">Tencent TMT (腾讯云翻译)</div>
+                <div class="provider-desc">TextTranslateBatch · 高并发低延迟</div>
+              </div>
+              <div class="provider-status">
+                <span class="status-dot" id="cardDotTencent"></span>
+                <span class="status-label" id="cardLabelTencent">Not Configured</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- 移动端底部专属 4 胶囊悬浮控制舱（还原 ios_in_place_mockup.png 底部设计） -->
+    <nav class="mobile-bottom-dock" aria-label="移动端快捷控制栏">
+      <button type="button" id="mobBtnUpload" class="dock-pill primary-dock-pill">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
+        <div class="dock-pill-text">
+          <span class="dock-sub">选择截图</span>
+          <span class="dock-main">相册/拍照</span>
+        </div>
+      </button>
+
+      <button type="button" id="mobBtnEngine" class="dock-pill">
+        <span class="status-dot online"></span>
+        <div class="dock-pill-text">
+          <span class="dock-sub">翻译引擎</span>
+          <span class="dock-main" id="mobEngineLabel">Google</span>
+        </div>
+      </button>
+
+      <button type="button" id="mobBtnHoldCompare" class="dock-pill">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+          <line x1="12" y1="4" x2="12" y2="20"></line>
+        </svg>
+        <div class="dock-pill-text">
+          <span class="dock-sub">视图模式</span>
+          <span class="dock-main" id="mobModeLabel">按住对照</span>
+        </div>
+      </button>
+
+      <button type="button" id="mobBtnShortcut" class="dock-pill">
+        <span class="status-dot online"></span>
+        <div class="dock-pill-text">
+          <span class="dock-sub">轻点背面</span>
+          <span class="dock-main">快捷指令</span>
+        </div>
+      </button>
+    </nav>
+  </div>
+
+  <!-- 弹窗 1：API 密钥配置弹窗 -->
+  <div id="apiModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="apiModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="apiModalTitle" class="modal-title">配置翻译 API 密钥</h3>
+        <button type="button" id="btnCloseApiModal" class="icon-close-btn" aria-label="关闭">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-tip">
+          密钥仅安全保存在你的本机 <code>config.json</code> 中，绝不上传第三方。未填写密钥时默认使用内置免配置的 <strong>Google 极速翻译</strong>。
+        </p>
+
+        <div class="form-group">
+          <label class="form-label">当前默认激活引擎</label>
+          <select id="cfgActiveEngine" class="form-input">
+            <option value="google">Google 极速免配置翻译 (推荐默认)</option>
+            <option value="baidu">百度翻译通用 API (每月免费 200 万字符)</option>
+            <option value="tencent">腾讯云机器翻译 TMT (每月免费 500 万字符)</option>
+          </select>
+        </div>
+
+        <div class="form-divider">百度翻译开放平台 (fanyi-api.baidu.com)</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">百度 APP ID</label>
+            <input type="text" id="cfgBaiduAppId" class="form-input" placeholder="输入百度翻译 APP ID" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">百度密钥 (Secret Key)</label>
+            <input type="password" id="cfgBaiduAppKey" class="form-input" placeholder="输入百度翻译密钥" autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="form-divider">腾讯云机器翻译 TMT (console.cloud.tencent.com/tmt)</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">腾讯云 SecretId</label>
+            <input type="text" id="cfgTencentId" class="form-input" placeholder="输入腾讯云 SecretId" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">腾讯云 SecretKey</label>
+            <input type="password" id="cfgTencentKey" class="form-input" placeholder="输入腾讯云 SecretKey" autocomplete="off" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnCancelApiModal" class="action-btn subtle-btn">取消</button>
+        <button type="button" id="btnSaveApiConfig" class="action-btn primary-btn">保存并立即生效</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 弹窗 2：iOS「轻点背面 / Action 按钮」1秒原位覆盖快捷指令配置向导 -->
+  <div id="shortcutModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="shortcutModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="shortcutModalTitle" class="modal-title">iOS「轻点背面两下」1 秒原位屏幕翻译配置</h3>
+        <button type="button" id="btnCloseShortcutModal" class="icon-close-btn" aria-label="关闭">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-tip">
+          无需越狱、无需每 7 天用 Xcode 重签证书！利用 iOS 原生<strong>「快捷指令 + 快速查看 (Quick Look)」</strong>，在任何外文 App、推特或漫画里敲两下手机背面，<strong>1 秒直接弹出 1:1 原位汉化全屏图</strong>，看完下拉即回原应用。
+        </p>
+
+        <div class="endpoint-box">
+          <div class="endpoint-label">你的专属局域网 iOS 快捷指令接口地址：</div>
+          <div class="endpoint-CopyRow">
+            <code id="shortcutUrlCode" class="endpoint-code">http://127.0.0.1:8765/api/ios-shortcut</code>
+            <button type="button" id="btnCopyShortcutUrl" class="action-btn primary-btn">复制地址</button>
+          </div>
+          <div class="endpoint-sub">手机 Safari 也可直接访问工作台：<code id="mobileWebUrlCode">http://127.0.0.1:8765</code>（支持「添加到主屏幕」作为原生全屏 App 使用）</div>
+        </div>
+
+        <div class="steps-list">
+          <div class="step-item">
+            <span class="step-badge">步骤 1</span>
+            <div class="step-text">打开 iPhone 自带的<strong>「快捷指令」App</strong>，点击右上角 <strong>+</strong> 新建快捷指令，命名为<strong>「屏幕原位翻译」</strong>。</div>
+          </div>
+          <div class="step-item">
+            <span class="step-badge">步骤 2</span>
+            <div class="step-text">
+              依次添加以下 <strong>3 个系统动作</strong>：<br />
+              ① 搜索并添加 <strong>「截屏 (Take Screenshot)」</strong><br />
+              ② 搜索并添加 <strong>「获取 URL 内容 (Get Contents of URL)」</strong>：粘贴上方接口地址，展开后将方法改为 <code>POST</code>，请求体选择 <code>文件 (File)</code>，变量选刚才的 <code>截屏</code><br />
+              ③ 搜索并添加 <strong>「快速查看 (Quick Look)」</strong>（会自动接收上一步返回的 1:1 原位汉化图并全屏显示）。
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-badge">步骤 3</span>
+            <div class="step-text">
+              进入 iPhone <strong>设置 → 辅助功能 → 触控 → 轻点背面 → 轻点两下</strong>（或 iPhone 15 Pro/16 的<strong>操作按钮 Action Button</strong>），勾选<strong>「屏幕原位翻译」</strong>即可随时触发！
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnDoneShortcutModal" class="action-btn primary-btn">我知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 轻量 Toast 提示 -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

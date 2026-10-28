@@ -1,0 +1,19 @@
+{
+  "name": "transforge-mobile",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build_dist.mjs",
+    "ios:sync": "npm run build && (test -d ios || npx cap add ios) && npx cap sync ios && node scripts/inject_ios_vision.mjs",
+    "ios:check": "node scripts/ios_check.mjs",
+    "ios:open": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.6.9"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.6.9",
+    "@capacitor/ios": "^7.6.9"
+  }
+}

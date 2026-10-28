@@ -1,0 +1,14 @@
+# 忽略本地敏感环境变量与运行生成配置
+.env
+config.json
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node 与 Capacitor 构建产物
+web/node_modules/
+web/dist/
+web/ios/

@@ -1,0 +1,82 @@
+# iOS (Capacitor + Apple Vision Native OCR) 构建：未签名 ipa → Artifact + GitHub Release 直接下载
+# 支持通过 Sideloadly / AltStore / 爱思助手 / TrollStore 安装到 iPhone
+name: iOS Build & Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: 'Live Reload 局域网开发地址 (留空为内置 Apple Vision OCR + 百度翻译独立离线包)'
+        required: false
+        default: ''
+  push:
+    branches: ['main']
+    tags: ['v*', 'ios-*']
+
+jobs:
+  ios:
+    runs-on: macos-15
+    permissions:
+      contents: write
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: web
+    env:
+      BAIDU_TRANSLATE_APP_ID: ${{ secrets.BAIDU_TRANSLATE_APP_ID }}
+      BAIDU_TRANSLATE_SECRET_KEY: ${{ secrets.BAIDU_TRANSLATE_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web + Capacitor iOS sync + Inject Apple Vision OCR
+        run: npm run ios:sync && npm run ios:check
+
+      - name: Configure Info.plist (Permissions & Networking)
+        run: |
+          P=ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" $P || true
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 需要访问相册以选择屏幕截图进行1:1原位翻译" $P || true
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string 需要保存1:1原位翻译后的图片到相册" $P || true
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 需要使用相机拍摄画面进行实时翻译" $P || true
+          /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity dict" $P || true
+          /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool true" $P || true
+          /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true" $P || true
+          if [ -n "${{ inputs.server_url }}" ]; then
+            node -e "const fs=require('fs'),p='ios/App/App/capacitor.config.json',c=JSON.parse(fs.readFileSync(p,'utf8'));c.server={url:process.env.S_URL,cleartext:true};fs.writeFileSync(p,JSON.stringify(c,null,2));" S_URL="${{ inputs.server_url }}"
+          fi
+
+      - name: Set Deployment Target iOS 16.0
+        run: |
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 16.0;/g' ios/App/App.xcodeproj/project.pbxproj
+          grep -m2 IPHONEOS_DEPLOYMENT_TARGET ios/App/App.xcodeproj/project.pbxproj
+
+      - name: Build Unsigned IPA
+        run: |
+          cd ios/App
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release -sdk iphoneos \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+          mkdir -p out/Payload && cp -R build/Build/Products/Release-iphoneos/App.app out/Payload/
+          cd out && zip -qry TransForge-unsigned.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TransForge-unsigned-ipa
+          path: web/ios/App/out/TransForge-unsigned.ipa
+          retention-days: 30
+
+      - name: Publish GitHub Release (Direct Download to iPhone/PC)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="ios-build-${{ github.run_number }}"
+          gh release create "$TAG" ios/App/out/TransForge-unsigned.ipa --target "${{ github.sha }}" \
+            --title "TransForge iOS 原位屏幕翻译 IPA #${{ github.run_number }}" \
+            --notes "内置 Apple Vision 端侧多语种 OCR 与百度翻译 API 的 1:1 原位屏幕翻译 iOS 安装包。可直接下载 TransForge-unsigned.ipa，通过 Sideloadly / AltStore / 爱思助手 / 巨魔 (TrollStore) 安装到 iPhone。" --prerelease

@@ -1,0 +1,12 @@
+{
+  "appId": "com.haoran.transforge",
+  "appName": "TransForge",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#09090b",
+    "allowsLinkPreview": false,
+    "scrollEnabled": true,
+    "limitsNavigationsToAppBoundDomains": false
+  }
+}
