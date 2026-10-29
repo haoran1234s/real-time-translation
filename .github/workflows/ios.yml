@@ -32,11 +32,22 @@ jobs:
         with:
           node-version: 20
 
+      - name: Select latest Xcode (iOS 26 SDK for Apple Translation)
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; else echo "未找到 Xcode 26，使用默认 Xcode（苹果离线翻译将被编译排除）"; fi
+          xcodebuild -version
+
       - name: Install dependencies
         run: npm install
 
-      - name: Build web + Capacitor iOS sync + Inject Apple Vision OCR
+      - name: Build web + Capacitor iOS sync + Inject native layer
         run: npm run ios:sync && npm run ios:check
+
+      - name: Add ReplayKit Broadcast Extension target
+        run: |
+          ruby -e "require 'xcodeproj'" 2>/dev/null || gem install xcodeproj --no-document || sudo gem install xcodeproj --no-document
+          ruby scripts/add_broadcast_ext.rb
 
       - name: Configure Info.plist (Permissions & Networking)
         run: |
@@ -50,8 +61,7 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true" $P || true
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" $P || true
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string audio" $P || true
-          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:1 string processing" $P || true
-          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:2 string fetch" $P || true
+          /usr/libexec/PlistBuddy -c "Add :NSLocalNetworkUsageDescription string 用于在本机内接收录屏扩展的画面以进行实时翻译" $P || true
           if [ -n "${{ inputs.server_url }}" ]; then
             node -e "const fs=require('fs'),p='ios/App/App/capacitor.config.json',c=JSON.parse(fs.readFileSync(p,'utf8'));c.server={url:process.env.S_URL,cleartext:true};fs.writeFileSync(p,JSON.stringify(c,null,2));" S_URL="${{ inputs.server_url }}"
           fi
@@ -75,6 +85,8 @@ jobs:
               -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
           fi
           mkdir -p out/Payload && cp -R build/Build/Products/Release-iphoneos/App.app out/Payload/
+          echo "PlugIns 内容："; ls -la out/Payload/App.app/PlugIns || true
+          test -d out/Payload/App.app/PlugIns/TransForgeBroadcast.appex || { echo "录屏扩展未被打包进 App"; exit 1; }
           cd out && zip -qry TransForge-unsigned.ipa Payload
 
       - name: Upload IPA Artifact
@@ -91,4 +103,4 @@ jobs:
           TAG="ios-build-${{ github.run_number }}"
           gh release create "$TAG" ios/App/out/TransForge-unsigned.ipa --target "${{ github.sha }}" \
             --title "TransForge iOS 原位屏幕翻译 IPA #${{ github.run_number }}" \
-            --notes "内置 Apple Vision 端侧多语种 OCR 与百度翻译 API 的 1:1 原位屏幕翻译 iOS 安装包。可直接下载 TransForge-unsigned.ipa，通过 Sideloadly / AltStore / 爱思助手 / 巨魔 (TrollStore) 安装到 iPhone。" --prerelease
+            --notes "持续自动翻译版：ReplayKit 录屏扩展 + 画中画悬浮窗 + Apple Vision OCR + 苹果离线翻译（百度备选）。下载 TransForge-unsigned.ipa 后通过 Sideloadly / AltStore 自签安装到 iPhone。" --prerelease

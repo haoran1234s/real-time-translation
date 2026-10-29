@@ -581,25 +581,18 @@ const updatePiPUI = (active) => {
   dom.pipLiveBanner?.classList.toggle("hidden", !active);
 
   if (dom.pipBtnLabel) {
-    dom.pipBtnLabel.textContent = active ? "悬浮实时翻译运行中 (点击关闭)" : "开启悬浮实时翻译 (PiP)";
+    dom.pipBtnLabel.textContent = active ? "实时翻译中（点击关闭）" : "开启实时翻译";
   }
   if (dom.mobPipSub) {
-    dom.mobPipSub.textContent = active ? "LIVE 运行中" : "全局悬浮窗";
+    dom.mobPipSub.textContent = active ? "实时翻译中" : "录屏 + 悬浮窗";
   }
   if (dom.mobPipMain) {
-    dom.mobPipMain.textContent = active ? "点击关闭悬浮" : "开启实时翻译";
+    dom.mobPipMain.textContent = active ? "点击关闭" : "开启实时翻译";
   }
 };
 
 const pushFrameToPiP = (renderedBase64) => {
   if (!renderedBase64) return;
-  const nativeHandler = window.webkit?.messageHandlers?.nativeOcr;
-  if (nativeHandler) {
-    nativeHandler.postMessage({
-      action: "updatePiPFrame",
-      imageBase64: renderedBase64
-    });
-  }
   if (webPipCanvas) {
     const img = new Image();
     img.onload = () => {
@@ -615,58 +608,72 @@ const pushFrameToPiP = (renderedBase64) => {
   }
 };
 
-window.__onNativePiPState = (active, message) => {
-  updatePiPUI(Boolean(active));
-  if (message) showToast(message);
+/**
+ * 原生持续自动翻译引擎状态回调
+ * @param {{active:boolean,pip:boolean,connected:boolean,frames:number,engine:string,hint:string,items:Array<{src:string,dst:string}>}} payload
+ */
+let lastLiveHint = "";
+window.__onLiveState = (payload) => {
+  const p = payload ?? {};
+  updatePiPUI(Boolean(p.active));
+
+  if (dom.pipBannerText) {
+    if (!p.active) {
+      dom.pipBannerText.textContent = "实时翻译已关闭";
+    } else if (!p.connected) {
+      dom.pipBannerText.textContent = "等待录屏开始：在系统弹窗中点「开始直播」，或在控制中心长按「屏幕录制」选择 TransForge";
+    } else {
+      const pipText = p.pip ? "悬浮窗已开启" : "悬浮窗未开启（切到后台会自动弹出）";
+      dom.pipBannerText.textContent = `录屏已连接 · ${pipText} · 已接收 ${p.frames ?? 0} 帧 · 引擎：${p.engine ?? "-"}`;
+    }
+  }
+
+  if (p.hint && p.hint !== lastLiveHint) {
+    lastLiveHint = p.hint;
+    showToast(p.hint);
+  }
+
+  const items = Array.isArray(p.items) ? p.items : [];
+  if (p.active && items.length > 0) {
+    renderLiveItems(items);
+  }
 };
 
-window.__onNativeLiveTranslated = (renderedBase64, rawBlocks) => {
-  if (!renderedBase64) return;
-  const imgW = 750;
-  const imgH = 1334;
-  const blocks = (Array.isArray(rawBlocks) ? rawBlocks : []).map((b, i) => ({
-    id: `T${i + 1}`,
-    index: i + 1,
-    original: b.src ?? "",
-    translated: b.dst ?? "",
-    x: Math.round(b.x ?? 0),
-    y: Math.round(b.y ?? 0),
-    w: Math.round(b.w ?? 100),
-    h: Math.round(b.h ?? 36),
-    nx: Number((((b.x ?? 0) / imgW) * 100).toFixed(2)),
-    ny: Number((((b.y ?? 0) / imgH) * 100).toFixed(2)),
-    nw: Number((((b.w ?? 100) / imgW) * 100).toFixed(2)),
-    nh: Number((((b.h ?? 36) / imgH) * 100).toFixed(2)),
-    bg_color: "#0d0f14",
-    fg_color: "#f8fafc",
-    line_count: 1
-  }));
-  applyTranslationSession({
-    session_id: `pip_${Date.now()}`,
-    width: imgW,
-    height: imgH,
-    engine: "baidu",
-    total_ms: 480,
-    blocks,
-    original_image: renderedBase64,
-    rendered_image: renderedBase64
-  });
-  showToast(`已实时识别并刷新悬浮窗 (${blocks.length} 处译文)`);
+/**
+ * 在右侧列表中渲染实时翻译结果
+ * @param {Array<{src:string,dst:string}>} items 翻译条目
+ */
+const renderLiveItems = (items) => {
+  if (!dom.textBlocksList) return;
+  if (dom.itemCountBadge) dom.itemCountBadge.textContent = `${items.length} 项`;
+  dom.textBlocksList.innerHTML = items
+    .map(
+      (it, i) => `
+      <article class="block-card">
+        <div class="block-card-head">
+          <div class="block-title-wrap">
+            <span class="t-badge">T${i + 1}</span>
+            <span class="block-headline">${escapeHtml(it.dst ?? "")}</span>
+          </div>
+        </div>
+        <div class="block-row">
+          <span class="row-label">原文</span>
+          <span class="row-val-orig">${escapeHtml(it.src ?? "")}</span>
+        </div>
+      </article>`
+    )
+    .join("");
 };
 
 const toggleLivePiPMode = async () => {
   const nativeHandler = window.webkit?.messageHandlers?.nativeOcr;
   if (nativeHandler) {
-    const nextAction = state.isPiPActive ? "stopPiP" : "startPiP";
     nativeHandler.postMessage({
-      action: nextAction,
+      action: state.isPiPActive ? "stopLive" : "startLive",
       baiduAppId: state.config?.baidu?.app_id ?? "",
       baiduSecretKey: state.config?.baidu?.app_key ?? "",
       targetLang: state.targetLang ?? "zh"
     });
-    if (nextAction === "startPiP" && state.renderedImage) {
-      setTimeout(() => pushFrameToPiP(state.renderedImage), 150);
-    }
     return;
   }
 
@@ -728,13 +735,7 @@ const toggleLivePiPMode = async () => {
 const triggerLatestScreenshotTranslate = () => {
   const nativeHandler = window.webkit?.messageHandlers?.nativeOcr;
   if (nativeHandler) {
-    nativeHandler.postMessage({
-      action: "translateLatestScreenshot",
-      baiduAppId: state.config?.baidu?.app_id ?? "",
-      baiduSecretKey: state.config?.baidu?.app_key ?? "",
-      targetLang: state.targetLang ?? "zh"
-    });
-    showToast("正在后台读取相册最新截屏并执行 1:1 原位翻译...");
+    nativeHandler.postMessage({ action: "openPicker" });
     return;
   }
   dom.fileInput?.click();
@@ -1085,6 +1086,7 @@ const bindEvents = () => {
 
   dom.targetLangSelect?.addEventListener("change", (e) => {
     state.targetLang = e.target.value;
+    window.webkit?.messageHandlers?.nativeOcr?.postMessage({ action: "config", targetLang: state.targetLang });
     if (state.originalImage) translateBase64Image(state.originalImage);
   });
 

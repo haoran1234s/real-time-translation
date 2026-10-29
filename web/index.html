@@ -70,9 +70,9 @@
 
       <!-- 右侧连接状态与功能入口 -->
       <div class="topbar-actions">
-        <button type="button" id="btnTogglePiP" class="action-btn primary-btn" title="开启 iOS 原生画中画悬浮窗 + 后台自动监听截屏/剪贴板，切回任意 App 实时翻译">
+        <button type="button" id="btnTogglePiP" class="action-btn primary-btn" title="开启录屏扩展 + 画中画悬浮窗，切到任意 App 自动持续翻译">
           <span class="status-dot online" id="pipStatusDot"></span>
-          <span id="pipBtnLabel">开启悬浮实时翻译 (PiP)</span>
+          <span id="pipBtnLabel">开启实时翻译</span>
         </button>
 
         <button type="button" id="btnLiveSync" class="action-btn subtle-btn active" title="开启后手机快捷指令触发翻译会自动同步到当前电脑画布">
@@ -85,7 +85,7 @@
             <rect x="6" y="2" width="12" height="20" rx="2.5"></rect>
             <path d="M10 18h4"></path>
           </svg>
-          <span>无感使用指南</span>
+          <span>使用指南</span>
         </button>
 
         <button type="button" id="btnOpenApiModal" class="action-btn">
@@ -166,11 +166,11 @@
         <div id="pipLiveBanner" class="pip-live-banner hidden">
           <div class="pip-banner-left">
             <span class="status-dot online"></span>
-            <span id="pipBannerText">全局画中画 (PiP) 实时模式运行中：切回任意 App 截屏或复制文字，悬浮窗将在 0.5s 内自动刷新 1:1 原位译文</span>
+            <span id="pipBannerText">等待录屏开始：在系统弹窗中点「开始直播」，或在控制中心长按「屏幕录制」选择 TransForge</span>
           </div>
           <div class="pip-banner-actions">
-            <button type="button" id="btnTranslateLatestShot" class="mini-btn">立即识别最新截屏</button>
-            <button type="button" id="btnStopPiPBanner" class="mini-btn">关闭悬浮</button>
+            <button type="button" id="btnTranslateLatestShot" class="mini-btn">重新弹出录屏开关</button>
+            <button type="button" id="btnStopPiPBanner" class="mini-btn">关闭</button>
           </div>
         </div>
 
@@ -291,7 +291,7 @@
       <button type="button" id="mobBtnPiP" class="dock-pill primary-dock-pill">
         <span class="status-dot online" id="mobPipDot"></span>
         <div class="dock-pill-text">
-          <span class="dock-sub" id="mobPipSub">全局悬浮窗</span>
+          <span class="dock-sub" id="mobPipSub">录屏 + 悬浮窗</span>
           <span class="dock-main" id="mobPipMain">开启实时翻译</span>
         </div>
       </button>
@@ -381,47 +381,51 @@
     </div>
   </div>
 
-  <!-- 弹窗 2：iOS「轻点背面 / Action 按钮」1秒原位覆盖快捷指令配置向导 -->
+  <!-- 弹窗 2：iPhone 持续自动翻译使用指南（录屏扩展 + 画中画） -->
   <div id="shortcutModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="shortcutModalTitle">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 id="shortcutModalTitle" class="modal-title">iOS「轻点背面两下」1 秒原位屏幕翻译配置</h3>
+        <h3 id="shortcutModalTitle" class="modal-title">iPhone 持续自动翻译使用指南</h3>
         <button type="button" id="btnCloseShortcutModal" class="icon-close-btn" aria-label="关闭">✕</button>
       </div>
       <div class="modal-body">
         <p class="modal-tip">
-          无需越狱、无需每 7 天用 Xcode 重签证书！利用 iOS 原生<strong>「快捷指令 + 快速查看 (Quick Look)」</strong>，在任何外文 App、推特或漫画里敲两下手机背面，<strong>1 秒直接弹出 1:1 原位汉化全屏图</strong>，看完下拉即回原应用。
+          开启后，TransForge 通过系统<strong>屏幕录制</strong>读取画面，在<strong>画中画悬浮窗</strong>里持续显示译文。切到任意 App 都能用，不影响操作。开启期间状态栏会显示红色录屏标记。
         </p>
 
+        <div class="steps-list">
+          <div class="step-item">
+            <span class="step-badge">首次</span>
+            <div class="step-text">
+              下载离线语言包（免费、无需联网）：<strong>设置 → App → 翻译 → 下载语言</strong>，下载你要看的外语（如英语、日语、韩语）和中文。未下载时会改用百度翻译。
+            </div>
+          </div>
+          <div class="step-item">
+            <span class="step-badge">步骤 1</span>
+            <div class="step-text">点底部「<strong>开启实时翻译</strong>」，画中画悬浮窗出现，同时弹出系统录屏窗口，点「<strong>开始直播</strong>」。</div>
+          </div>
+          <div class="step-item">
+            <span class="step-badge">步骤 2</span>
+            <div class="step-text">切到任意外文 App。画面停稳 1～2 秒，悬浮窗自动显示译文；滚动或换页后会自动更新。悬浮窗可拖动、双指缩放、贴边隐藏。</div>
+          </div>
+          <div class="step-item">
+            <span class="step-badge">快捷开关</span>
+            <div class="step-text">也可以在<strong>控制中心长按「屏幕录制」→ 选择 TransForge 实时翻译 → 开始直播</strong>（需先打开过 App 并点过开启）。</div>
+          </div>
+          <div class="step-item">
+            <span class="step-badge">关闭</span>
+            <div class="step-text">回到 App 点「实时翻译中（点击关闭）」，或点状态栏红色标记停止录屏。</div>
+          </div>
+        </div>
+
+        <div class="form-divider">电脑端快捷指令接口（可选，仅连接电脑后端时可用）</div>
         <div class="endpoint-box">
-          <div class="endpoint-label">你的专属局域网 iOS 快捷指令接口地址：</div>
+          <div class="endpoint-label">局域网 iOS 快捷指令接口地址：</div>
           <div class="endpoint-CopyRow">
             <code id="shortcutUrlCode" class="endpoint-code">http://127.0.0.1:8765/api/ios-shortcut</code>
             <button type="button" id="btnCopyShortcutUrl" class="action-btn primary-btn">复制地址</button>
           </div>
-          <div class="endpoint-sub">手机 Safari 也可直接访问工作台：<code id="mobileWebUrlCode">http://127.0.0.1:8765</code>（支持「添加到主屏幕」作为原生全屏 App 使用）</div>
-        </div>
-
-        <div class="steps-list">
-          <div class="step-item">
-            <span class="step-badge">步骤 1</span>
-            <div class="step-text">打开 iPhone 自带的<strong>「快捷指令」App</strong>，点击右上角 <strong>+</strong> 新建快捷指令，命名为<strong>「屏幕原位翻译」</strong>。</div>
-          </div>
-          <div class="step-item">
-            <span class="step-badge">步骤 2</span>
-            <div class="step-text">
-              依次添加以下 <strong>3 个系统动作</strong>：<br />
-              ① 搜索并添加 <strong>「截屏 (Take Screenshot)」</strong><br />
-              ② 搜索并添加 <strong>「获取 URL 内容 (Get Contents of URL)」</strong>：粘贴上方接口地址，展开后将方法改为 <code>POST</code>，请求体选择 <code>文件 (File)</code>，变量选刚才的 <code>截屏</code><br />
-              ③ 搜索并添加 <strong>「快速查看 (Quick Look)」</strong>（会自动接收上一步返回的 1:1 原位汉化图并全屏显示）。
-            </div>
-          </div>
-          <div class="step-item">
-            <span class="step-badge">步骤 3</span>
-            <div class="step-text">
-              进入 iPhone <strong>设置 → 辅助功能 → 触控 → 轻点背面 → 轻点两下</strong>（或 iPhone 15 Pro/16 的<strong>操作按钮 Action Button</strong>），勾选<strong>「屏幕原位翻译」</strong>即可随时触发！
-            </div>
-          </div>
+          <div class="endpoint-sub">手机 Safari 也可直接访问工作台：<code id="mobileWebUrlCode">http://127.0.0.1:8765</code></div>
         </div>
       </div>
       <div class="modal-footer">
