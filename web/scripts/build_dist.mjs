@@ -27,11 +27,13 @@ if (fs.existsSync(parentEnvPath)) {
 const distDir = path.join(rootDir, "dist");
 fs.mkdirSync(distDir, { recursive: true });
 
-// 1. 处理 index.html：将 /static/ 替换为相对路径 ./
+// 1. 处理 index.html：将 /static/ 与 /assets/ 替换为相对路径 ./
 const htmlRaw = fs.readFileSync(path.join(rootDir, "index.html"), "utf8");
 const htmlDist = htmlRaw
   .replace(/href="\/static\/style\.css"/g, 'href="./style.css"')
-  .replace(/src="\/static\/app\.js"/g, 'src="./app.js"');
+  .replace(/src="\/static\/app\.js"/g, 'src="./app.js"')
+  .replace(/href="\/assets\//g, 'href="./assets/')
+  .replace(/src="\/assets\//g, 'src="./assets/');
 fs.writeFileSync(path.join(distDir, "index.html"), htmlDist, "utf8");
 
 // 2. 复制 style.css
@@ -46,4 +48,14 @@ const presetEnv = {
 const injectedBanner = `window.__PRESET_ENV__ = ${JSON.stringify(presetEnv)};\n`;
 fs.writeFileSync(path.join(distDir, "app.js"), injectedBanner + appJsRaw, "utf8");
 
-console.log("[OK] dist/ 构建完成 (已适配 Capacitor iOS 独立运行包)");
+// 4. 复制品牌资源 (favicon, apple-touch-icon, logo)
+const assetsSrcDir = path.join(rootDir, "assets");
+const assetsDistDir = path.join(distDir, "assets");
+if (fs.existsSync(assetsSrcDir)) {
+  fs.mkdirSync(assetsDistDir, { recursive: true });
+  for (const file of fs.readdirSync(assetsSrcDir)) {
+    fs.copyFileSync(path.join(assetsSrcDir, file), path.join(assetsDistDir, file));
+  }
+}
+
+console.log("[OK] dist/ 构建完成 (已适配 Capacitor iOS 独立运行包与品牌图标)");

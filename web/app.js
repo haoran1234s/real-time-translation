@@ -443,13 +443,24 @@ const renderOverlayLayer = () => {
   const { displayMode, blocks, toggledOriginalIds, highlightedId } = state;
   dom.overlayLayer.className = `overlay-layer mode-${displayMode}`;
 
+  const stageW = dom.screenImage?.clientWidth || dom.overlayLayer?.clientWidth || 340;
+  const stageH = dom.screenImage?.clientHeight || dom.overlayLayer?.clientHeight || 580;
+  const isCompactStage = stageW < 420;
+  const minFontPx = isCompactStage ? 9 : 11;
+  const maxFontPx = isCompactStage ? 15 : 22;
+
   const htmlFragments = blocks.map((blk) => {
     const isShowingOrig = toggledOriginalIds.has(blk.id);
     const displayText = isShowingOrig ? (blk.original ?? "") : (blk.translated ?? "-");
     const isHighlighted = highlightedId === blk.id ? "highlighted" : "";
 
     const lineCount = Math.max(1, Number(blk.line_count ?? 1));
-    const approxFontPx = Math.max(11, Math.min(24, Math.round((blk.nh * 5.2) / lineCount)));
+    const boxPxW = Math.max(24, (Number(blk.nw ?? 10) / 100) * stageW);
+    const boxPxH = Math.max(14, (Number(blk.nh ?? 3) / 100) * stageH);
+    const charCount = Math.max(1, displayText.length);
+    const fontByHeight = (boxPxH / lineCount) * 0.68;
+    const fontByArea = Math.sqrt((boxPxW * boxPxH * 0.76) / charCount);
+    const approxFontPx = Math.max(minFontPx, Math.min(maxFontPx, Math.round(Math.min(fontByHeight, fontByArea))));
 
     if (displayMode === "inplace") {
       return `
@@ -464,7 +475,7 @@ const renderOverlayLayer = () => {
             min-height: ${blk.nh}%;
             background-color: ${escapeHtml(blk.bg_color ?? "#121214")};
             color: ${escapeHtml(blk.fg_color ?? "#f8fafc")};
-            font-size: clamp(11px, ${approxFontPx}px, 22px);
+            font-size: ${approxFontPx}px;
           "
         >
           <span class="inplace-text">${escapeHtml(displayText)}</span>
@@ -1128,10 +1139,12 @@ const bindEvents = () => {
   const startCompare = () => {
     dom.overlayLayer?.classList.add("compare-hidden");
     dom.btnHoldCompare?.classList.add("holding");
+    dom.mobBtnHoldCompare?.classList.add("holding");
   };
   const stopCompare = () => {
     dom.overlayLayer?.classList.remove("compare-hidden");
     dom.btnHoldCompare?.classList.remove("holding");
+    dom.mobBtnHoldCompare?.classList.remove("holding");
   };
 
   dom.btnHoldCompare?.addEventListener("mousedown", startCompare);
@@ -1142,14 +1155,30 @@ const bindEvents = () => {
     startCompare();
   });
   dom.btnHoldCompare?.addEventListener("touchend", stopCompare);
+  dom.btnHoldCompare?.addEventListener("touchcancel", stopCompare);
 
   dom.mobBtnHoldCompare?.addEventListener("touchstart", (e) => {
     e.preventDefault();
     startCompare();
   });
   dom.mobBtnHoldCompare?.addEventListener("touchend", stopCompare);
+  dom.mobBtnHoldCompare?.addEventListener("touchcancel", stopCompare);
   dom.mobBtnHoldCompare?.addEventListener("mousedown", startCompare);
   dom.mobBtnHoldCompare?.addEventListener("mouseup", stopCompare);
+  dom.mobBtnHoldCompare?.addEventListener("mouseleave", stopCompare);
+
+  dom.screenImage?.addEventListener("load", () => {
+    if (state.blocks.length > 0) {
+      renderOverlayLayer();
+    }
+  });
+
+  let resizeRaf = 0;
+  window.addEventListener("resize", () => {
+    if (state.blocks.length === 0) return;
+    cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(() => renderOverlayLayer());
+  });
 
   dom.overlayLayer?.addEventListener("click", (e) => {
     const item = e.target.closest(".ocr-overlay-item");

@@ -12,3 +12,7 @@ venv/
 web/node_modules/
 web/dist/
 web/ios/
+
+# 本地测试临时文件
+_codex_*
+demo_test_out.png

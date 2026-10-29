@@ -35,3 +35,20 @@ const swift = fs
 
 fs.writeFileSync(destPath, swift, "utf8");
 console.log("[OK] 已注入原生层：Vision OCR + 持续自动翻译引擎（录屏扩展回环 + 画中画）");
+
+// 同步自定义品牌图标与启动图到 Capacitor 生成的 iOS Assets.xcassets
+const iconSrc = path.join(rootDir, "assets", "app-icon.png");
+const iconDest = path.join(rootDir, "ios", "App", "App", "Assets.xcassets", "AppIcon.appiconset", "AppIcon-512@2x.png");
+if (fs.existsSync(iconSrc) && fs.existsSync(path.dirname(iconDest))) {
+  fs.copyFileSync(iconSrc, iconDest);
+  console.log("[OK] 已同步自定义 iOS 桌面图标 (AppIcon-512@2x.png)");
+}
+
+const splashSrc = path.join(rootDir, "assets", "splash.png");
+const splashDir = path.join(rootDir, "ios", "App", "App", "Assets.xcassets", "Splash.imageset");
+if (fs.existsSync(splashSrc) && fs.existsSync(splashDir)) {
+  for (const name of ["splash-2732x2732.png", "splash-2732x2732-1.png", "splash-2732x2732-2.png"]) {
+    fs.copyFileSync(splashSrc, path.join(splashDir, name));
+  }
+  console.log("[OK] 已同步自定义 iOS 启动画面 (Splash.imageset)");
+}

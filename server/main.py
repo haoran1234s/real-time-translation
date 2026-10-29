@@ -318,8 +318,11 @@ async def get_history_list() -> Dict[str, Any]:
     return {"items": list(session_history)}
 
 
-# 挂载前端静态资源
+# 挂载前端静态资源与品牌图标
 app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
+assets_dir = WEB_DIR / "assets"
+if assets_dir.exists():
+    app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
 
 
 @app.get("/")
